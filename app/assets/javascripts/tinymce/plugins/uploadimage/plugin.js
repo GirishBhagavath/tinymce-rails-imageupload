@@ -99,25 +99,45 @@
           return handleError('You must choose a file');
         }
 
+
+
         throbber = new top.tinymce.ui.Throbber(win.getEl());
         throbber.show();
+        var formData = new FormData();
+        formData.append('file', $(form).find('input[type=file]')[0].files[0])
+        $.ajax({
+            url: $(form).attr('action'),
+            data: formData,
+            method: 'POST',
+            // THIS MUST BE DONE FOR FILE UPLOADING
+            contentType: false,
+            processData: false,
+            success: function(data){
+              handleResponse(data)
+            },
+            complete: function(data){
+              if(throbber) {
+                throbber.hide();
+              }
+            }
+            // ... Other options like success and etc
+        })
+        // clearErrors();
 
-        clearErrors();
+        // /* Add event listeners.
+        //  * We remove the existing to avoid them being called twice in case
+        //  * of errors and re-submitting afterwards.
+        //  */
+        // var target = iframe.getEl();
+        // if(target.attachEvent) {
+        //   target.detachEvent('onload', uploadDone);
+        //   target.attachEvent('onload', uploadDone);
+        // } else {
+        //   target.removeEventListener('load', uploadDone);
+        //   target.addEventListener('load', uploadDone, false);
+        // }
 
-        /* Add event listeners.
-         * We remove the existing to avoid them being called twice in case
-         * of errors and re-submitting afterwards.
-         */
-        var target = iframe.getEl();
-        if(target.attachEvent) {
-          target.detachEvent('onload', uploadDone);
-          target.attachEvent('onload', uploadDone);
-        } else {
-          target.removeEventListener('load', uploadDone);
-          target.addEventListener('load', uploadDone, false);
-        }
-
-        form.submit();
+        // form.submit();
       }
 
       function uploadDone() {
@@ -134,12 +154,16 @@
         }
       }
 
-      function handleResponse(ret) {
+      function handleResponse(json) {
         try {
-          var json = tinymce.util.JSON.parse(ret);
-
           if(json["error"]) {
-            handleError(json["error"]["message"]);
+            for (attribute in json["error"]) {
+              var messages = json["error"][attribute]
+              for(index in messages){
+                var message = messages[index]
+                handleError(message);
+              }
+            }
           } else {
             ed.execCommand('mceInsertContent', false, buildHTML(json));
             ed.windowManager.close();
@@ -184,10 +208,10 @@
         if(default_class != "")
           imgstr += " class='" + default_class + "'";
 
-        if(json["image"]["height"])
-          imgstr += " height='" + json["image"]["height"] + "'";
-        if(json["image"]["width"])
-          imgstr += " width='"  + json["image"]["width"]  + "'";
+        // if(json["image"]["height"])
+        //   imgstr += " height='" + json["image"]["height"] + "'";
+        // if(json["image"]["width"])
+        //   imgstr += " width='"  + json["image"]["width"]  + "'";
 
         imgstr += " alt='" + alt_text + "'/>";
 
